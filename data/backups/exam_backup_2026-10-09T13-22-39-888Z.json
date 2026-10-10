@@ -1,0 +1,214 @@
+{
+  "admin": {
+    "username": "admin",
+    "email": "admin@examportal.edu",
+    "passwordHash": "admin123"
+  },
+  "batches": [
+    {
+      "id": "batch_banking",
+      "name": "Banking",
+      "targetExam": "Banking",
+      "description": "IBPS PO/Clerk, SBI PO/Clerk, RBI & Gramin Bank",
+      "createdAt": "2026-10-06T11:38:14.345Z"
+    },
+    {
+      "id": "batch_railway",
+      "name": "Railway",
+      "targetExam": "Railway",
+      "description": "RRB NTPC, Group D, ALP & Technician",
+      "createdAt": "2026-10-06T11:38:14.345Z"
+    },
+    {
+      "id": "batch_ssc",
+      "name": "SSC",
+      "targetExam": "SSC",
+      "description": "SSC CGL, CHSL, MTS, CPO & GD Constable",
+      "createdAt": "2026-10-06T11:38:14.345Z"
+    },
+    {
+      "id": "batch_ossc",
+      "name": "OSSC",
+      "targetExam": "OSSC",
+      "description": "Odisha SSC CGL, Combined Auditor, Statistical Surveyor",
+      "createdAt": "2026-10-06T11:38:14.345Z"
+    },
+    {
+      "id": "batch_osssc",
+      "name": "OSSSSC",
+      "targetExam": "OSSSSC",
+      "description": "Odisha SSSC RI, ARI, Amin, JA & Panchayat Executive",
+      "createdAt": "2026-10-06T11:38:14.345Z"
+    },
+    {
+      "id": "batch_all",
+      "name": "ALL",
+      "targetExam": "ALL",
+      "description": "Common Competitive Batch (All Examinations)",
+      "createdAt": "2026-10-06T11:38:14.345Z"
+    }
+  ],
+  "subjects": [
+    {
+      "id": "sub_math",
+      "name": "Math",
+      "code": "MATH",
+      "topics": [
+        "Arithmetic & Simplification",
+        "Percentage & Profit Loss",
+        "Ratio & Proportion",
+        "Time, Work & Distance",
+        "Algebra & Number System",
+        "Data Interpretation (DI)",
+        "Geometry & Mensuration",
+        "Quadratic Equations & Series"
+      ]
+    },
+    {
+      "id": "sub_reasoning",
+      "name": "Reasoning",
+      "code": "REAS",
+      "topics": [
+        "Syllogism & Deductions",
+        "Seating Arrangement & Puzzles",
+        "Coding-Decoding",
+        "Blood Relations & Direction",
+        "Inequalities & Ranking",
+        "Analogy & Classification",
+        "Non-Verbal & Series",
+        "Statement & Assumptions"
+      ]
+    },
+    {
+      "id": "sub_gk",
+      "name": "GK",
+      "code": "GK",
+      "topics": [
+        "Indian History & Freedom Struggle",
+        "Indian Polity & Constitution",
+        "Geography (India & World)",
+        "General Science (Physics/Chem/Bio)",
+        "Indian Economy & Budget",
+        "Odisha State GK & Heritage",
+        "Static GK & Important Days",
+        "Art, Culture & Literature"
+      ]
+    },
+    {
+      "id": "sub_ca",
+      "name": "Current Affairs",
+      "code": "CA",
+      "topics": [
+        "National & International Affairs",
+        "Banking & Economic News",
+        "Government Schemes & Portals",
+        "Awards, Honors & Summits",
+        "Sports & Championships",
+        "Science, Defense & Space",
+        "Appointments & Obituaries",
+        "Books, Authors & Indices"
+      ]
+    },
+    {
+      "id": "sub_english",
+      "name": "English",
+      "code": "ENG",
+      "topics": [
+        "Reading Comprehension",
+        "Error Spotting & Grammar",
+        "Cloze Test & Fillers",
+        "Para Jumbles & Sentence Rearrangement",
+        "Synonyms & Antonyms",
+        "Idioms & Phrases",
+        "One Word Substitution",
+        "Spelling & Vocabulary"
+      ]
+    },
+    {
+      "id": "sub_computer",
+      "name": "Computer",
+      "code": "COMP",
+      "topics": [
+        "Computer Fundamentals & History",
+        "Hardware & Input/Output Devices",
+        "Operating Systems (Windows/Linux)",
+        "MS Office (Word, Excel, PowerPoint)",
+        "Computer Networks & Internet",
+        "Cyber Security & Malwares",
+        "Database Concepts (DBMS)",
+        "Shortcuts, Abbreviations & Extensions"
+      ]
+    }
+  ],
+  "questions": [],
+  "examinations": [],
+  "students": [],
+  "attempts": [],
+  "doubts": [],
+  "announcements": [],
+  "notifications": [],
+  "auditLogs": [
+    {
+      "id": "log_1791552159876_5a25q",
+      "action": "ADMIN_LOGIN",
+      "admin": "Administrator",
+      "details": "Successful secret administrator login verified.",
+      "timestamp": "2026-10-09T13:22:39.876Z"
+    },
+    {
+      "id": "log_1791552085988_vvjbw",
+      "action": "ADMIN_LOGIN",
+      "admin": "Administrator",
+      "details": "Successful secret administrator login verified.",
+      "timestamp": "2026-10-09T13:21:25.988Z"
+    },
+    {
+      "id": "log_init",
+      "action": "PLATFORM_INITIALIZED",
+      "admin": "System Root",
+      "details": "Competitive Examination Platform cleanly initialized with 0 students, 0 exams, and 0 questions.",
+      "timestamp": "2026-10-06T12:09:44.867Z"
+    }
+  ],
+  "settings": {
+    "instituteName": "",
+    "contactEmail": "administration@examportal.edu",
+    "contactPhone": "+91 11 2345 6789",
+    "timeZone": "Asia/Kolkata",
+    "adminShortcut": "Ctrl+Shift+A",
+    "admin2FAEnabled": false,
+    "backgroundMusicEnabled": true,
+    "defaultMusicVolume": 0.06,
+    "audioTracks": [
+      {
+        "id": "track_alpha",
+        "name": "Alpha Waves 432Hz (Deep Focus & Flow)",
+        "url": "synth:alpha",
+        "active": true
+      },
+      {
+        "id": "track_theta",
+        "name": "Theta Memory Waves (Calm Focus)",
+        "url": "synth:theta",
+        "active": false
+      },
+      {
+        "id": "track_zen",
+        "name": "Binaural Zen Ambient (Distraction Blocker)",
+        "url": "synth:zen",
+        "active": false
+      },
+      {
+        "id": "track_brown",
+        "name": "Warm Brown Noise (Acoustic Shield)",
+        "url": "synth:brown",
+        "active": false
+      }
+    ],
+    "aiDailyLimitPerStudent": 30,
+    "showRankingToStudents": true,
+    "defaultExamDuration": 60,
+    "defaultMarksPerQuestion": 4,
+    "defaultNegativeMarks": 1
+  }
+}

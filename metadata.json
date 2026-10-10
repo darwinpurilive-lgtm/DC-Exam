@@ -1,0 +1,8 @@
+{
+  "name": "Competitive Examination Management Platform",
+  "description": "Competitive examination management platform with student and administration portals, AI question generator & OCR extraction, robust server-synchronized testing engine, and comprehensive analytics.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
