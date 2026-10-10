@@ -84,7 +84,7 @@ export interface Examination {
   description: string;
   subject: string;
   topics: string[];
-  mode: 'online' | 'offline';
+  mode?: 'online';
   startDate: string;
   endDate: string;
   durationMinutes: number;
@@ -206,9 +206,6 @@ export interface PlatformSettings {
   timeZone: string;
   adminShortcut: string;
   admin2FAEnabled: boolean;
-  backgroundMusicEnabled: boolean;
-  defaultMusicVolume: number;
-  audioTracks: { id: string; name: string; url: string; active: boolean }[];
   aiDailyLimitPerStudent: number;
   showRankingToStudents: boolean;
   defaultExamDuration: number;

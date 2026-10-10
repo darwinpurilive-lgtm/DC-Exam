@@ -52,43 +52,15 @@
   "attempts": [],
   "settings": {
     "timeZone": "Asia/Kolkata",
-    "audioTracks": [
-      {
-        "id": "track_alpha",
-        "url": "synth:alpha",
-        "name": "Alpha Waves 432Hz (Deep Focus & Flow)",
-        "active": true
-      },
-      {
-        "id": "track_theta",
-        "url": "synth:theta",
-        "name": "Theta Memory Waves (Calm Focus)",
-        "active": false
-      },
-      {
-        "id": "track_zen",
-        "url": "synth:zen",
-        "name": "Binaural Zen Ambient (Distraction Blocker)",
-        "active": false
-      },
-      {
-        "id": "track_brown",
-        "url": "synth:brown",
-        "name": "Warm Brown Noise (Acoustic Shield)",
-        "active": false
-      }
-    ],
     "contactEmail": "administration@examportal.edu",
     "contactPhone": "+91 11 2345 6789",
     "adminShortcut": "Ctrl+Shift+A",
     "instituteName": "",
     "admin2FAEnabled": false,
-    "defaultMusicVolume": 0.06,
     "defaultExamDuration": 60,
     "defaultNegativeMarks": 1,
     "showRankingToStudents": true,
     "aiDailyLimitPerStudent": 30,
-    "backgroundMusicEnabled": true,
     "defaultMarksPerQuestion": 4
   },
   "students": [],
@@ -185,6 +157,75 @@
     }
   ],
   "auditLogs": [
+    {
+      "id": "log_1791630690152_v88f1",
+      "action": "QUESTION_DELETED",
+      "admin": "Administrator",
+      "details": "Deleted question q_1791630655858_0rth",
+      "targetId": "q_1791630655858_0rth",
+      "timestamp": "2026-10-10T11:11:30.152Z"
+    },
+    {
+      "id": "log_1791630688796_efr9q",
+      "admin": "Administrator",
+      "action": "EXAMINATION_DELETED",
+      "details": "Deleted exam Verification Math Assessment Test",
+      "targetId": "exam_1791630657242",
+      "timestamp": "2026-10-10T11:11:28.796Z"
+    },
+    {
+      "id": "log_1791630688270_54s8e",
+      "admin": "Administrator",
+      "action": "ADMIN_LOGIN",
+      "details": "Successful secret administrator login verified.",
+      "timestamp": "2026-10-10T11:11:28.270Z"
+    },
+    {
+      "id": "log_1791630657242_172a7",
+      "admin": "Administrator",
+      "action": "EXAMINATION_CREATED",
+      "details": "Created online examination: Verification Math Assessment Test",
+      "targetId": "exam_1791630657242",
+      "timestamp": "2026-10-10T11:10:57.242Z"
+    },
+    {
+      "id": "log_1791630655858_77mpj",
+      "admin": "Administrator",
+      "action": "QUESTION_CREATED",
+      "details": "Added question to Math (Percentage & Profit Loss)",
+      "targetId": "q_1791630655858_0rth",
+      "timestamp": "2026-10-10T11:10:55.858Z"
+    },
+    {
+      "id": "log_1791630655163_6g547",
+      "admin": "Administrator",
+      "action": "ADMIN_LOGIN",
+      "details": "Successful secret administrator login verified.",
+      "timestamp": "2026-10-10T11:10:55.163Z"
+    },
+    {
+      "id": "log_1791630636912_i4sol",
+      "admin": "Administrator",
+      "action": "STUDENT_DELETED",
+      "details": "Deleted student record: Production Persistence Verifier (EXAM-2026-0001)",
+      "targetId": "std_1791630634185_s0t9",
+      "timestamp": "2026-10-10T11:10:36.912Z"
+    },
+    {
+      "id": "log_1791630635603_nrr3i",
+      "admin": "Administrator",
+      "action": "STUDENT_STATUS_CHANGE",
+      "details": "Changed Production Persistence Verifier (EXAM-2026-0001) status from Pending to Approved",
+      "targetId": "std_1791630634185_s0t9",
+      "timestamp": "2026-10-10T11:10:35.603Z"
+    },
+    {
+      "id": "log_1791630633068_cfqz8",
+      "admin": "Administrator",
+      "action": "ADMIN_LOGIN",
+      "details": "Successful secret administrator login verified.",
+      "timestamp": "2026-10-10T11:10:33.068Z"
+    },
     {
       "id": "log_1791553224249_ihqba",
       "admin": "Administrator",
@@ -360,6 +401,15 @@
       "title": "New Student Registration",
       "message": "Verification Candidate (EXAM-2026-0001) has registered and requires approval.",
       "createdAt": "2026-10-09T13:38:54.370Z",
+      "recipientId": "admin"
+    },
+    {
+      "id": "notif_admin_1791630634185",
+      "read": false,
+      "type": "approval",
+      "title": "New Student Registration",
+      "message": "Production Persistence Verifier (EXAM-2026-0001) has registered and requires approval.",
+      "createdAt": "2026-10-10T11:10:34.185Z",
       "recipientId": "admin"
     }
   ]

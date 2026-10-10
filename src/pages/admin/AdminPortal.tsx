@@ -884,7 +884,7 @@ export const AdminPortal: React.FC<Props> = ({ onPreviewExam }) => {
                   {overview.metrics.totalExams}
                 </div>
                 <div className="text-[11px] text-slate-400 mt-1">
-                  Online: {overview.metrics.onlineExams} · Offline: {overview.metrics.offlineExams}
+                  Scheduled Online Examinations
                 </div>
               </div>
 
@@ -2340,7 +2340,7 @@ Explanation: Limiting friction f_max = μmg = 0.4 × 2 × 9.8 = 7.84 N. Net forc
                 <div className="space-y-1">
                   <h4 className="text-base font-bold text-white">No Examinations Configured</h4>
                   <p className="text-xs text-slate-400 max-w-md mx-auto">
-                    The examination portal is clean and ready. Schedule an online or offline test by selecting questions from the Question Bank or importing them via AI/PDF.
+                    The examination portal is clean and ready. Schedule an examination by selecting questions from the Question Bank or importing them via AI/PDF.
                   </p>
                 </div>
                 <button
@@ -2357,7 +2357,7 @@ Explanation: Limiting friction f_max = μmg = 0.4 × 2 × 9.8 = 7.84 N. Net forc
                   <div key={exam.id} className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg flex flex-col justify-between space-y-4">
                     <div className="space-y-2">
                       <div className="flex items-center justify-between text-xs">
-                        <span className="font-mono text-indigo-400 font-semibold">{exam.mode.toUpperCase()}</span>
+                        <span className="font-mono text-indigo-400 font-semibold">{(exam.mode || 'online').toUpperCase()}</span>
                         <span className="text-emerald-400 font-semibold">{exam.status}</span>
                       </div>
                       <h4 className="text-base font-bold text-white">{exam.name}</h4>
@@ -2466,27 +2466,14 @@ Explanation: Limiting friction f_max = μmg = 0.4 × 2 × 9.8 = 7.84 N. Net forc
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-xs font-semibold uppercase text-slate-400 mb-1">Mode</label>
-                        <select
-                          value={newExamData.mode}
-                          onChange={(e) => setNewExamData({ ...newExamData, mode: e.target.value })}
-                          className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2 px-3 text-xs text-white"
-                        >
-                          <option value="online">Online Mode (Browser Testing)</option>
-                        </select>
-                      </div>
-
-                      <div>
-                        <label className="block text-xs font-semibold uppercase text-slate-400 mb-1">Duration (Minutes)</label>
-                        <input
-                          type="number"
-                          value={newExamData.durationMinutes}
-                          onChange={(e) => setNewExamData({ ...newExamData, durationMinutes: Number(e.target.value) })}
-                          className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2 px-3 text-xs text-white"
-                        />
-                      </div>
+                    <div>
+                      <label className="block text-xs font-semibold uppercase text-slate-400 mb-1">Duration (Minutes) *</label>
+                      <input
+                        type="number"
+                        value={newExamData.durationMinutes}
+                        onChange={(e) => setNewExamData({ ...newExamData, durationMinutes: Number(e.target.value) })}
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2 px-3 text-xs text-white"
+                      />
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
@@ -3077,21 +3064,24 @@ grant execute on function public.save_app_data(integer, jsonb, timestamptz) to s
                 <h3 className="font-bold text-base text-white">System Data Reset & Launch Preparation</h3>
               </div>
               <p className="text-xs text-slate-400">
-                Purge all registered candidate accounts, test attempts, questions, and examinations to establish a clean state with 0 students, 0 exams, and 0 questions ready for fresh intake and test scheduling.
+                Purge registered candidate accounts, test attempts, questions, and examinations. An automatic immutable JSON backup archive is always generated and saved prior to purge to prevent irreversible data loss.
               </p>
               <div>
                 <button
                   type="button"
                   onClick={async () => {
-                    if (confirm('Are you sure you want to purge all candidate accounts, test attempts, questions, and examinations? This gives a clean start with 0 students, 0 exams, and 0 questions.')) {
+                    if (confirm('Are you sure you want to purge candidate accounts, test attempts, questions, and examinations? An automatic safety backup will be created first.')) {
                       try {
                         const res = await fetch('/api/admin/purge-data', {
                           method: 'POST',
-                          headers: { Authorization: `Bearer ${adminToken}` }
+                          headers: {
+                            Authorization: `Bearer ${adminToken}`,
+                            'x-confirm-data-purge': 'confirmed'
+                          }
                         });
                         const data = await res.json();
                         if (res.ok) {
-                          alert(data.message || 'Platform state cleanly reset to 0 students, exams, and questions!');
+                          alert((data.message || 'Platform state cleanly reset!') + (data.backupArchive ? `\n(Safety Backup: ${data.backupArchive})` : ''));
                           refreshAllData();
                         } else {
                           alert(data.error || 'Failed to purge data.');

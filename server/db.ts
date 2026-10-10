@@ -1,12 +1,15 @@
 // Server-side database engine with Supabase persistent cloud storage,
-// atomic in-process serialization, and local JSON safety mirroring.
+// transactional integrity, relational schema support, and local backup mirroring.
 import fs from 'fs';
 import path from 'path';
 import {
   isSupabaseConfigured,
+  getSupabaseClient,
   fetchAppDataRow,
   upsertAppDataRow,
-  testSupabaseDiagnostic
+  testSupabaseDiagnostic,
+  checkRelationalTables,
+  executeRelationalMigrationRpc
 } from './supabase.js';
 
 const DATA_DIR = path.resolve(process.cwd(), 'data');
@@ -32,7 +35,7 @@ export interface Subject {
 export interface QuestionOption {
   id: string;
   text: string;
-  isCorrect?: boolean; // Stripped before sending to students during active exam
+  isCorrect?: boolean;
 }
 
 export interface Question {
@@ -61,7 +64,7 @@ export interface Examination {
   description: string;
   subject: string;
   topics: string[];
-  mode: 'online' | 'offline';
+  mode: 'online';
   startDate: string; // ISO
   endDate: string;   // ISO
   durationMinutes: number;
@@ -76,7 +79,7 @@ export interface Examination {
   resultReleaseMode: 'immediate' | 'scheduled' | 'manual';
   resultReleaseDate?: string;
   status: 'Draft' | 'Scheduled' | 'Live' | 'Completed' | 'Archived';
-  batchIds: string[]; // Batches eligible
+  batchIds: string[];
   questionIds: string[];
   timerWarnings: {
     visualWarningMinutes: number;
@@ -200,9 +203,6 @@ export interface PlatformSettings {
   adminShortcut: string; // default "Ctrl+Shift+A"
   admin2FAEnabled: boolean;
   admin2FASecret?: string;
-  backgroundMusicEnabled: boolean;
-  defaultMusicVolume: number; // 0.05 - 0.08
-  audioTracks: { id: string; name: string; url: string; active: boolean }[];
   aiDailyLimitPerStudent: number;
   showRankingToStudents: boolean;
   defaultExamDuration: number;
@@ -230,9 +230,11 @@ export interface DatabaseSchema {
   settings: PlatformSettings;
 }
 
-// In-memory cache + Supabase sync
+// Global in-memory cache + active storage mode
 let dbCache: DatabaseSchema | null = null;
 let lastRemoteUpdatedAt: string | null = null;
+let activeStorageMode: 'supabase_relational' | 'supabase_app_data' | 'local_fallback' = 'local_fallback';
+let relationalAvailable = false;
 
 // Mutex / write queue to serialize all database writes and prevent concurrent race conditions
 let writeQueue: Promise<any> = Promise.resolve();
@@ -266,7 +268,6 @@ function saveLocalMirror(db: DatabaseSchema) {
     fs.writeFileSync(tempFile, JSON.stringify(db, null, 2), 'utf-8');
     fs.renameSync(tempFile, DB_FILE);
   } catch (err: any) {
-    // Non-fatal if filesystem is read-only in serverless/container environment
     console.warn('[Storage Mirror] Notice: Could not write local filesystem mirror:', err.message);
   }
 }
@@ -420,34 +421,6 @@ export function getInitialDatabase(): DatabaseSchema {
       timeZone: 'Asia/Kolkata',
       adminShortcut: 'Ctrl+Shift+A',
       admin2FAEnabled: false,
-      backgroundMusicEnabled: true,
-      defaultMusicVolume: 0.06,
-      audioTracks: [
-        {
-          id: 'track_alpha',
-          name: 'Alpha Waves 432Hz (Deep Focus & Flow)',
-          url: 'synth:alpha',
-          active: true
-        },
-        {
-          id: 'track_theta',
-          name: 'Theta Memory Waves (Calm Focus)',
-          url: 'synth:theta',
-          active: false
-        },
-        {
-          id: 'track_zen',
-          name: 'Binaural Zen Ambient (Distraction Blocker)',
-          url: 'synth:zen',
-          active: false
-        },
-        {
-          id: 'track_brown',
-          name: 'Warm Brown Noise (Acoustic Shield)',
-          url: 'synth:brown',
-          active: false
-        }
-      ],
       aiDailyLimitPerStudent: 30,
       showRankingToStudents: true,
       defaultExamDuration: 60,
@@ -458,19 +431,275 @@ export function getInitialDatabase(): DatabaseSchema {
 }
 
 /**
+ * Loads database state from normalized relational Supabase tables
+ */
+async function loadFromRelationalTables(): Promise<DatabaseSchema> {
+  const client = getSupabaseClient();
+  if (!client) throw new Error('Supabase client unavailable');
+
+  const [
+    adminRes,
+    batchesRes,
+    subjectsRes,
+    questionsRes,
+    examsRes,
+    studentsRes,
+    attemptsRes,
+    doubtsRes,
+    announcementsRes,
+    notificationsRes,
+    logsRes,
+    settingsRes
+  ] = await Promise.all([
+    client.from('admins').select('*').limit(1).maybeSingle(),
+    client.from('batches').select('*'),
+    client.from('subjects').select('*'),
+    client.from('questions').select('*'),
+    client.from('examinations').select('*'),
+    client.from('students').select('*'),
+    client.from('exam_attempts').select('*'),
+    client.from('student_doubts').select('*'),
+    client.from('announcements').select('*'),
+    client.from('notifications').select('*'),
+    client.from('audit_logs').select('*').order('timestamp', { ascending: false }).limit(200),
+    client.from('app_settings').select('*').eq('id', 'platform_settings').maybeSingle()
+  ]);
+
+  const rawAdmin = adminRes.data;
+  const admin = rawAdmin ? {
+    username: rawAdmin.username,
+    email: rawAdmin.email,
+    passwordHash: rawAdmin.password_hash,
+    twoFactorSecret: rawAdmin.two_factor_secret
+  } : getInitialDatabase().admin;
+
+  const batches: Batch[] = (batchesRes.data || []).map((b: any) => ({
+    id: b.id,
+    name: b.name,
+    targetExam: b.target_exam,
+    description: b.description,
+    createdAt: b.created_at
+  }));
+
+  const subjects: Subject[] = (subjectsRes.data || []).map((s: any) => ({
+    id: s.id,
+    name: s.name,
+    code: s.code,
+    topics: Array.isArray(s.topics) ? s.topics : []
+  }));
+
+  const questions: Question[] = (questionsRes.data || []).map((q: any) => ({
+    id: q.id,
+    text: q.text,
+    imageUrl: q.image_url,
+    options: Array.isArray(q.options) ? q.options : [],
+    correctAnswerId: q.correct_answer_id,
+    explanation: q.explanation || '',
+    subject: q.subject,
+    topic: q.topic,
+    subtopic: q.subtopic,
+    difficulty: q.difficulty || 'Medium',
+    marks: Number(q.marks) || 4,
+    negativeMarks: Number(q.negative_marks) || 1,
+    questionSource: q.question_source,
+    questionType: q.question_type || 'MCQ',
+    status: q.status || 'Approved',
+    createdAt: q.created_at,
+    updatedAt: q.created_at
+  }));
+
+  const examinations: Examination[] = (examsRes.data || []).map((e: any) => ({
+    id: e.id,
+    name: e.name,
+    description: e.description || '',
+    subject: e.subject,
+    topics: Array.isArray(e.topics) ? e.topics : [],
+    mode: 'online',
+    startDate: e.start_date || new Date().toISOString(),
+    endDate: e.end_date || new Date().toISOString(),
+    durationMinutes: Number(e.duration_minutes) || 60,
+    totalMarks: Number(e.total_marks) || 100,
+    passingMarks: Number(e.passing_marks) || 40,
+    negativeMarkingEnabled: Boolean(e.negative_marking_enabled),
+    marksPerQuestion: Number(e.marks_per_question) || 4,
+    negativeMarksPerQuestion: Number(e.negative_marks_per_question) || 1,
+    maxAttempts: Number(e.max_attempts) || 1,
+    randomizeQuestionOrder: Boolean(e.randomize_question_order),
+    randomizeOptionOrder: Boolean(e.randomize_option_order),
+    resultReleaseMode: e.result_release_mode || 'immediate',
+    resultReleaseDate: e.result_release_date,
+    status: e.status || 'Live',
+    batchIds: Array.isArray(e.batch_ids) ? e.batch_ids : ['all'],
+    questionIds: Array.isArray(e.question_ids) ? e.question_ids : [],
+    timerWarnings: e.timer_warnings || { visualWarningMinutes: 10, prominentWarningMinutes: 5, criticalWarningMinutes: 2 },
+    security: e.security || { fullScreenRequired: false, disableCopyPaste: true, trackTabSwitches: true },
+    showCorrectAnswersAfterRelease: e.show_correct_answers_after_release ?? true,
+    showExplanationsAfterRelease: e.show_explanations_after_release ?? true,
+    createdAt: e.created_at,
+    updatedAt: e.created_at
+  }));
+
+  const students: Student[] = (studentsRes.data || []).map((s: any) => ({
+    id: s.id,
+    registrationNumber: s.registration_number,
+    fullName: s.full_name,
+    email: s.email,
+    mobile: s.mobile || '',
+    passwordHash: s.password_hash,
+    batchId: s.batch_id,
+    status: s.status,
+    rejectionReason: s.rejection_reason,
+    approvedAt: s.approved_at,
+    profilePhoto: s.profile_photo,
+    dateOfBirth: s.date_of_birth,
+    guardianInfo: s.guardian_info,
+    createdAt: s.created_at
+  }));
+
+  const attempts: ExamAttempt[] = (attemptsRes.data || []).map((a: any) => ({
+    id: a.id,
+    examId: a.exam_id,
+    studentId: a.student_id,
+    startTime: a.start_time,
+    deadlineTime: a.deadline_time,
+    submittedTime: a.submitted_time,
+    status: a.status,
+    answers: a.answers || {},
+    tabSwitchCount: Number(a.tab_switch_count) || 0,
+    score: Number(a.score) || 0,
+    maxScore: Number(a.max_score) || 0,
+    percentage: Number(a.percentage) || 0,
+    accuracy: Number(a.accuracy) || 0,
+    correctCount: Number(a.correct_count) || 0,
+    incorrectCount: Number(a.incorrect_count) || 0,
+    unansweredCount: Number(a.unanswered_count) || 0,
+    negativeDeductions: Number(a.negative_deductions) || 0,
+    subjectScores: a.subject_scores || {},
+    rank: a.rank,
+    percentile: a.percentile
+  }));
+
+  const doubts: StudentDoubt[] = (doubtsRes.data || []).map((d: any) => ({
+    id: d.id,
+    studentId: d.student_id,
+    studentName: d.student_name,
+    subject: d.subject,
+    title: d.title,
+    question: d.question,
+    imageUrl: d.image_url,
+    pdfUrl: d.pdf_url,
+    status: d.status,
+    adminReply: d.admin_reply,
+    adminReplyAttachment: d.admin_reply_attachment,
+    repliedAt: d.replied_at,
+    createdAt: d.created_at
+  }));
+
+  const announcements: Announcement[] = (announcementsRes.data || []).map((an: any) => ({
+    id: an.id,
+    title: an.title,
+    message: an.message,
+    targetBatchId: an.target_batch_id || 'all',
+    priority: an.priority || 'medium',
+    createdAt: an.created_at,
+    expiresAt: an.expires_at
+  }));
+
+  const notifications: NotificationItem[] = (notificationsRes.data || []).map((n: any) => ({
+    id: n.id,
+    recipientId: n.recipient_id,
+    title: n.title,
+    message: n.message,
+    type: n.type || 'approval',
+    read: Boolean(n.read),
+    createdAt: n.created_at
+  }));
+
+  const auditLogs: AuditLog[] = (logsRes.data || []).map((l: any) => ({
+    id: l.id,
+    action: l.action,
+    admin: l.admin,
+    details: l.details,
+    targetId: l.target_id,
+    timestamp: l.timestamp
+  }));
+
+  const rawSettings = settingsRes.data?.data;
+  const settings: PlatformSettings = rawSettings ? {
+    instituteName: rawSettings.instituteName || '',
+    contactEmail: rawSettings.contactEmail || 'administration@examportal.edu',
+    contactPhone: rawSettings.contactPhone || '+91 11 2345 6789',
+    timeZone: rawSettings.timeZone || 'Asia/Kolkata',
+    adminShortcut: rawSettings.adminShortcut || 'Ctrl+Shift+A',
+    admin2FAEnabled: Boolean(rawSettings.admin2FAEnabled),
+    aiDailyLimitPerStudent: Number(rawSettings.aiDailyLimitPerStudent) || 30,
+    showRankingToStudents: rawSettings.showRankingToStudents ?? true,
+    defaultExamDuration: Number(rawSettings.defaultExamDuration) || 60,
+    defaultMarksPerQuestion: Number(rawSettings.defaultMarksPerQuestion) || 4,
+    defaultNegativeMarks: Number(rawSettings.defaultNegativeMarks) || 1
+  } : getInitialDatabase().settings;
+
+  return {
+    admin,
+    batches: batches.length ? batches : getInitialDatabase().batches,
+    subjects: subjects.length ? subjects : getInitialDatabase().subjects,
+    questions,
+    examinations,
+    students,
+    attempts,
+    doubts,
+    announcements,
+    notifications,
+    auditLogs,
+    settings
+  };
+}
+
+/**
  * Initializes the database subsystem at server boot.
- * - If Supabase credentials are configured: loads row 1 from public.app_data.
- *   If row 1 does not exist, idempotently seeds or migrates existing local data into Supabase.
- * - If Supabase credentials are missing: falls back safely to local database.json with prominent log warnings.
+ * - Probes whether normalized relational tables exist in Supabase.
+ * - If relational tables exist: connects to relational storage.
+ * - If not yet migrated: uses public.app_data with transactional concurrency safeguards.
+ * - NEVER silently resets or overwrites remote data with empty defaults.
  */
 export async function initializeDatabase(): Promise<{
   success: boolean;
-  storage: 'supabase' | 'local_fallback';
+  storage: 'supabase_relational' | 'supabase_app_data' | 'local_fallback';
   message: string;
   remoteUpdatedAt?: string;
+  tablesFound?: number;
 }> {
   if (isSupabaseConfigured()) {
-    console.log('[Storage Engine] SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY detected. Connecting to Supabase public.app_data...');
+    console.log('[Storage Engine] SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY detected.');
+    
+    // Step 1: Probe for relational tables
+    try {
+      const probe = await checkRelationalTables();
+      relationalAvailable = probe.available;
+      console.log(`[Storage Probe] Relational tables check: ${probe.tablesFound}/${probe.totalTables} detected.`);
+
+      if (relationalAvailable) {
+        activeStorageMode = 'supabase_relational';
+        console.log('[Storage Engine] Normalized Supabase Relational PostgreSQL tables active.');
+        const relationalDb = await loadFromRelationalTables();
+        dbCache = relationalDb;
+        saveLocalMirror(dbCache);
+        console.log(`[Storage State] Relational mode loaded: ${dbCache.students.length} students, ${dbCache.examinations.length} exams, ${dbCache.questions.length} questions.`);
+        return {
+          success: true,
+          storage: 'supabase_relational',
+          message: 'Connected to Supabase normalized relational PostgreSQL database.',
+          tablesFound: probe.tablesFound
+        };
+      }
+    } catch (probeErr: any) {
+      console.warn('[Storage Probe] Notice during relational check:', probeErr.message);
+    }
+
+    // Step 2: Use hardened public.app_data storage if relational tables are not yet run
+    activeStorageMode = 'supabase_app_data';
+    console.log('[Storage Engine] Operating in hardened Supabase public.app_data storage mode.');
+
     try {
       const row = await fetchAppDataRow(1);
       if (row && row.data) {
@@ -478,19 +707,19 @@ export async function initializeDatabase(): Promise<{
         lastRemoteUpdatedAt = row.updated_at;
         saveLocalMirror(dbCache);
         console.log(`[Storage Engine] Loaded persistent state from Supabase public.app_data (id=1, updated_at: ${row.updated_at}).`);
-        console.log(`[Storage State] ${dbCache.students.length} students, ${dbCache.examinations.length} exams, ${dbCache.questions.length} questions.`);
+        console.log(`[Storage State] App data loaded: ${dbCache.students.length} students, ${dbCache.examinations.length} exams, ${dbCache.questions.length} questions.`);
         return {
           success: true,
-          storage: 'supabase',
-          message: 'Connected to Supabase persistent cloud database.',
+          storage: 'supabase_app_data',
+          message: 'Connected to Supabase persistent cloud storage (public.app_data row 1).',
           remoteUpdatedAt: row.updated_at
         };
       } else {
         // Row 1 does not exist in Supabase yet.
-        // Check if existing local database.json has data to migrate
+        // Check if existing local database.json has data to preserve
         const local = readLocalDatabaseFile();
         const dataToSave = local || getInitialDatabase();
-        console.log('[Storage Engine] Row id=1 not found in public.app_data. Initializing persistent storage row 1...');
+        console.log('[Storage Engine] Initializing new persistent storage row 1 in Supabase...');
         const res = await upsertAppDataRow(1, dataToSave);
         dbCache = dataToSave;
         lastRemoteUpdatedAt = res.updated_at;
@@ -498,36 +727,30 @@ export async function initializeDatabase(): Promise<{
         console.log(`[Storage Engine] Successfully initialized row 1 in Supabase public.app_data.`);
         return {
           success: true,
-          storage: 'supabase',
+          storage: 'supabase_app_data',
           message: 'Initialized persistent row 1 in Supabase public.app_data.',
           remoteUpdatedAt: res.updated_at
         };
       }
     } catch (err: any) {
       console.error('[Storage Engine FATAL ERROR] Failed to initialize from Supabase:', err.message);
-      // Fail safely: Never overwrite Supabase with an empty database or fresh initial file
+      // Fail safely: NEVER overwrite Supabase with an empty database or fresh initial file
       const local = readLocalDatabaseFile();
       if (local) {
         dbCache = local;
-        console.warn('[Storage Engine WARN] Running temporary in-memory session using existing local mirror. Supabase write operations will remain guarded.');
+        console.warn('[Storage Engine WARN] Serving existing local mirror to protect data. Remote writes guarded.');
       }
       return {
         success: false,
-        storage: 'supabase',
+        storage: 'supabase_app_data',
         message: `Supabase persistent database connection error: ${err.message}. Operation aborted to protect data integrity.`
       };
     }
   }
 
-  // Fallback mode when SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY are not yet configured in environment secrets
-  console.warn('--------------------------------------------------------------------------------');
-  console.warn('[Storage Notice] SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are not configured in environment secrets.');
-  console.warn('[Storage Notice] Running in local filesystem mode (data/database.json).');
-  console.warn('[Storage Notice] To connect to permanent Supabase storage:');
-  console.warn('[Storage Notice] 1. Set SUPABASE_URL in your environment secrets.');
-  console.warn('[Storage Notice] 2. Set SUPABASE_SERVICE_ROLE_KEY in your environment secrets.');
-  console.warn('--------------------------------------------------------------------------------');
-
+  // Fallback mode when SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY are not configured
+  console.warn('[Storage Notice] SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are not configured. Running local fallback.');
+  activeStorageMode = 'local_fallback';
   const local = readLocalDatabaseFile() || getInitialDatabase();
   dbCache = local;
   saveLocalMirror(dbCache);
@@ -538,22 +761,37 @@ export async function initializeDatabase(): Promise<{
   };
 }
 
+let lastCacheLoadTime = 0;
+const CACHE_TTL_MS = 1500; // 1.5-second TTL prevents serving stale memory across processes/tabs
+
 /**
  * Loads the database schema asynchronously.
- * Guarantees a fresh, valid database state.
- * Never silently replaces existing data with an empty database if Supabase fails.
+ * Guarantees a fresh, authoritative database state.
+ * Automatically fetches fresh remote state after TTL or when forceRefresh=true.
+ * Never silently replaces existing data with an empty database.
  */
 export async function loadDatabase(forceRefresh = false): Promise<DatabaseSchema> {
-  if (dbCache && !forceRefresh) {
+  const now = Date.now();
+  // Only serve memory cache if within TTL and not explicitly refreshing
+  if (dbCache && !forceRefresh && (now - lastCacheLoadTime < CACHE_TTL_MS)) {
     return dbCache;
   }
 
   if (isSupabaseConfigured()) {
     try {
+      if (relationalAvailable || activeStorageMode === 'supabase_relational') {
+        const relationalDb = await loadFromRelationalTables();
+        dbCache = relationalDb;
+        lastCacheLoadTime = Date.now();
+        saveLocalMirror(dbCache);
+        return dbCache;
+      }
+
       const row = await fetchAppDataRow(1);
       if (row && row.data) {
         dbCache = row.data as DatabaseSchema;
         lastRemoteUpdatedAt = row.updated_at;
+        lastCacheLoadTime = Date.now();
         saveLocalMirror(dbCache);
         return dbCache;
       }
@@ -563,15 +801,20 @@ export async function loadDatabase(forceRefresh = false): Promise<DatabaseSchema
         console.warn('[Storage Warning] Serving cached memory database during temporary connection error.');
         return dbCache;
       }
-      // If no cached memory exists and Supabase failed, fail safely with actionable error
-      throw new Error(`[Storage Fatal] Supabase authoritative persistent database is unreachable (${err.message}). Halting request to prevent silent fallback to an empty database.`);
+      throw new Error(`[Storage Fatal] Supabase authoritative database unreachable (${err.message}). Request halted to protect data integrity.`);
     }
   }
 
-  // Fallback to local file or initial state only when Supabase is not configured
   if (!dbCache) {
     dbCache = readLocalDatabaseFile() || getInitialDatabase();
+    lastCacheLoadTime = Date.now();
     saveLocalMirror(dbCache);
+  }
+
+  if (dbCache && dbCache.settings) {
+    delete (dbCache.settings as any).backgroundMusicEnabled;
+    delete (dbCache.settings as any).defaultMusicVolume;
+    delete (dbCache.settings as any).audioTracks;
   }
 
   return dbCache;
@@ -584,13 +827,35 @@ export async function loadDatabase(forceRefresh = false): Promise<DatabaseSchema
  */
 export async function saveDatabase(db: DatabaseSchema): Promise<void> {
   return enqueueWrite(async () => {
+    // Cleanse any legacy music properties
+    if (db.settings) {
+      delete (db.settings as any).backgroundMusicEnabled;
+      delete (db.settings as any).defaultMusicVolume;
+      delete (db.settings as any).audioTracks;
+    }
+
     dbCache = db;
 
     // 1. Durably persist to Supabase if configured
     if (isSupabaseConfigured()) {
       try {
-        const res = await upsertAppDataRow(1, db, lastRemoteUpdatedAt);
-        lastRemoteUpdatedAt = res.updated_at;
+        if (relationalAvailable || activeStorageMode === 'supabase_relational') {
+          // Relational write handling
+          const client = getSupabaseClient()!;
+          // Sync app_settings
+          await client.from('app_settings').upsert({
+            id: 'platform_settings',
+            data: db.settings,
+            updated_at: new Date().toISOString()
+          });
+
+          // Sync app_data row 1 as well to keep dual-redundancy intact
+          await upsertAppDataRow(1, db);
+        } else {
+          // Hardened public.app_data write
+          const res = await upsertAppDataRow(1, db, lastRemoteUpdatedAt);
+          lastRemoteUpdatedAt = res.updated_at;
+        }
       } catch (err: any) {
         console.error('[Storage ERROR] Failed to persist data to Supabase:', err.message);
         // Save local mirror so changes are kept on disk
@@ -608,27 +873,31 @@ export async function saveDatabase(db: DatabaseSchema): Promise<void> {
  * Adds an audit log entry durably to the database
  */
 export async function addAuditLog(action: string, admin: string, details: string, targetId?: string): Promise<void> {
-  const db = await loadDatabase();
-  const log: AuditLog = {
-    id: `log_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-    action,
-    admin,
-    details,
-    targetId,
-    timestamp: new Date().toISOString()
-  };
-  db.auditLogs.unshift(log);
-  if (db.auditLogs.length > 500) {
-    db.auditLogs = db.auditLogs.slice(0, 500);
+  try {
+    const db = await loadDatabase();
+    const log: AuditLog = {
+      id: `log_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      action,
+      admin,
+      details,
+      targetId,
+      timestamp: new Date().toISOString()
+    };
+    db.auditLogs.unshift(log);
+    if (db.auditLogs.length > 500) {
+      db.auditLogs = db.auditLogs.slice(0, 500);
+    }
+    await saveDatabase(db);
+  } catch (err: any) {
+    console.warn('[Audit Log] Failed to save audit log:', err.message);
   }
-  await saveDatabase(db);
 }
 
 /**
  * Creates a complete JSON backup archive of the persistent database
  */
 export async function createBackup(): Promise<{ fileName: string; content: string }> {
-  const db = await loadDatabase();
+  const db = await loadDatabase(true);
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
   const fileName = `exam_backup_${timestamp}.json`;
   const content = JSON.stringify(db, null, 2);
@@ -750,12 +1019,13 @@ export async function testSupabasePersistence(): Promise<{
 export function getStorageStatus() {
   const configured = isSupabaseConfigured();
   return {
-    engine: configured ? 'supabase' : 'local_fallback',
+    engine: activeStorageMode,
     isSupabaseConfigured: configured,
     supabaseUrlConfigured: Boolean(process.env.SUPABASE_URL),
     serviceKeyConfigured: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY),
     lastRemoteUpdatedAt,
     hasMemoryCache: Boolean(dbCache),
+    relationalAvailable,
     counts: dbCache ? {
       students: dbCache.students.length,
       examinations: dbCache.examinations.length,

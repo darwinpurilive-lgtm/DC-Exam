@@ -1,0 +1,371 @@
+{
+  "exportedAt": "2026-10-10T11:01:32.762Z",
+  "source": "Supabase public.app_data row id=1",
+  "remoteUpdatedAt": "2026-10-09T13:40:25.061+00:00",
+  "data": {
+    "admin": {
+      "email": "admin@examportal.edu",
+      "username": "admin",
+      "passwordHash": "admin123"
+    },
+    "doubts": [],
+    "batches": [
+      {
+        "id": "batch_banking",
+        "name": "Banking",
+        "createdAt": "2026-10-06T11:38:14.345Z",
+        "targetExam": "Banking",
+        "description": "IBPS PO/Clerk, SBI PO/Clerk, RBI & Gramin Bank"
+      },
+      {
+        "id": "batch_railway",
+        "name": "Railway",
+        "createdAt": "2026-10-06T11:38:14.345Z",
+        "targetExam": "Railway",
+        "description": "RRB NTPC, Group D, ALP & Technician"
+      },
+      {
+        "id": "batch_ssc",
+        "name": "SSC",
+        "createdAt": "2026-10-06T11:38:14.345Z",
+        "targetExam": "SSC",
+        "description": "SSC CGL, CHSL, MTS, CPO & GD Constable"
+      },
+      {
+        "id": "batch_ossc",
+        "name": "OSSC",
+        "createdAt": "2026-10-06T11:38:14.345Z",
+        "targetExam": "OSSC",
+        "description": "Odisha SSC CGL, Combined Auditor, Statistical Surveyor"
+      },
+      {
+        "id": "batch_osssc",
+        "name": "OSSSSC",
+        "createdAt": "2026-10-06T11:38:14.345Z",
+        "targetExam": "OSSSSC",
+        "description": "Odisha SSSC RI, ARI, Amin, JA & Panchayat Executive"
+      },
+      {
+        "id": "batch_all",
+        "name": "ALL",
+        "createdAt": "2026-10-06T11:38:14.345Z",
+        "targetExam": "ALL",
+        "description": "Common Competitive Batch (All Examinations)"
+      }
+    ],
+    "attempts": [],
+    "settings": {
+      "timeZone": "Asia/Kolkata",
+      "audioTracks": [
+        {
+          "id": "track_alpha",
+          "url": "synth:alpha",
+          "name": "Alpha Waves 432Hz (Deep Focus & Flow)",
+          "active": true
+        },
+        {
+          "id": "track_theta",
+          "url": "synth:theta",
+          "name": "Theta Memory Waves (Calm Focus)",
+          "active": false
+        },
+        {
+          "id": "track_zen",
+          "url": "synth:zen",
+          "name": "Binaural Zen Ambient (Distraction Blocker)",
+          "active": false
+        },
+        {
+          "id": "track_brown",
+          "url": "synth:brown",
+          "name": "Warm Brown Noise (Acoustic Shield)",
+          "active": false
+        }
+      ],
+      "contactEmail": "administration@examportal.edu",
+      "contactPhone": "+91 11 2345 6789",
+      "adminShortcut": "Ctrl+Shift+A",
+      "instituteName": "",
+      "admin2FAEnabled": false,
+      "defaultMusicVolume": 0.06,
+      "defaultExamDuration": 60,
+      "defaultNegativeMarks": 1,
+      "showRankingToStudents": true,
+      "aiDailyLimitPerStudent": 30,
+      "backgroundMusicEnabled": true,
+      "defaultMarksPerQuestion": 4
+    },
+    "students": [],
+    "subjects": [
+      {
+        "id": "sub_math",
+        "code": "MATH",
+        "name": "Math",
+        "topics": [
+          "Arithmetic & Simplification",
+          "Percentage & Profit Loss",
+          "Ratio & Proportion",
+          "Time, Work & Distance",
+          "Algebra & Number System",
+          "Data Interpretation (DI)",
+          "Geometry & Mensuration",
+          "Quadratic Equations & Series"
+        ]
+      },
+      {
+        "id": "sub_reasoning",
+        "code": "REAS",
+        "name": "Reasoning",
+        "topics": [
+          "Syllogism & Deductions",
+          "Seating Arrangement & Puzzles",
+          "Coding-Decoding",
+          "Blood Relations & Direction",
+          "Inequalities & Ranking",
+          "Analogy & Classification",
+          "Non-Verbal & Series",
+          "Statement & Assumptions"
+        ]
+      },
+      {
+        "id": "sub_gk",
+        "code": "GK",
+        "name": "GK",
+        "topics": [
+          "Indian History & Freedom Struggle",
+          "Indian Polity & Constitution",
+          "Geography (India & World)",
+          "General Science (Physics/Chem/Bio)",
+          "Indian Economy & Budget",
+          "Odisha State GK & Heritage",
+          "Static GK & Important Days",
+          "Art, Culture & Literature"
+        ]
+      },
+      {
+        "id": "sub_ca",
+        "code": "CA",
+        "name": "Current Affairs",
+        "topics": [
+          "National & International Affairs",
+          "Banking & Economic News",
+          "Government Schemes & Portals",
+          "Awards, Honors & Summits",
+          "Sports & Championships",
+          "Science, Defense & Space",
+          "Appointments & Obituaries",
+          "Books, Authors & Indices"
+        ]
+      },
+      {
+        "id": "sub_english",
+        "code": "ENG",
+        "name": "English",
+        "topics": [
+          "Reading Comprehension",
+          "Error Spotting & Grammar",
+          "Cloze Test & Fillers",
+          "Para Jumbles & Sentence Rearrangement",
+          "Synonyms & Antonyms",
+          "Idioms & Phrases",
+          "One Word Substitution",
+          "Spelling & Vocabulary"
+        ]
+      },
+      {
+        "id": "sub_computer",
+        "code": "COMP",
+        "name": "Computer",
+        "topics": [
+          "Computer Fundamentals & History",
+          "Hardware & Input/Output Devices",
+          "Operating Systems (Windows/Linux)",
+          "MS Office (Word, Excel, PowerPoint)",
+          "Computer Networks & Internet",
+          "Cyber Security & Malwares",
+          "Database Concepts (DBMS)",
+          "Shortcuts, Abbreviations & Extensions"
+        ]
+      }
+    ],
+    "auditLogs": [
+      {
+        "id": "log_1791553224249_ihqba",
+        "admin": "Administrator",
+        "action": "STUDENT_DELETED",
+        "details": "Deleted student record: Verification Candidate (EXAM-2026-0001)",
+        "targetId": "std_1791553134370_wae6",
+        "timestamp": "2026-10-09T13:40:24.249Z"
+      },
+      {
+        "id": "log_1791553223486_gew1b",
+        "admin": "Administrator",
+        "action": "ADMIN_LOGIN",
+        "details": "Successful secret administrator login verified.",
+        "timestamp": "2026-10-09T13:40:23.486Z"
+      },
+      {
+        "id": "log_1791553168828_ey3cx",
+        "admin": "Administrator",
+        "action": "ADMIN_LOGIN",
+        "details": "Successful secret administrator login verified.",
+        "timestamp": "2026-10-09T13:39:28.828Z"
+      },
+      {
+        "id": "log_1791553131429_9gjnm",
+        "admin": "Administrator",
+        "action": "ADMIN_LOGIN",
+        "details": "Successful secret administrator login verified.",
+        "timestamp": "2026-10-09T13:38:51.429Z"
+      },
+      {
+        "id": "log_1791552395107_sd9oe",
+        "admin": "System",
+        "action": "PERSISTENCE_CHECK",
+        "details": "Automated Supabase persistence verification at 2026-10-09T13:26:35.107Z",
+        "timestamp": "2026-10-09T13:26:35.107Z"
+      },
+      {
+        "id": "log_1791552384704_oncr7",
+        "admin": "System",
+        "action": "PERSISTENCE_CHECK",
+        "details": "Automated Supabase persistence verification at 2026-10-09T13:26:24.704Z",
+        "timestamp": "2026-10-09T13:26:24.704Z"
+      },
+      {
+        "id": "log_1791552383047_k42df",
+        "admin": "System",
+        "action": "PERSISTENCE_CHECK",
+        "details": "Automated Supabase persistence verification at 2026-10-09T13:26:23.047Z",
+        "timestamp": "2026-10-09T13:26:23.047Z"
+      },
+      {
+        "id": "log_1791552352566_igjll",
+        "admin": "System",
+        "action": "PERSISTENCE_CHECK",
+        "details": "Automated Supabase persistence verification at 2026-10-09T13:25:52.566Z",
+        "timestamp": "2026-10-09T13:25:52.566Z"
+      },
+      {
+        "id": "log_1791552350460_5vgya",
+        "admin": "Administrator",
+        "action": "ADMIN_LOGIN",
+        "details": "Successful secret administrator login verified.",
+        "timestamp": "2026-10-09T13:25:50.460Z"
+      },
+      {
+        "id": "log_1791552177769_8xaz4",
+        "admin": "Administrator",
+        "action": "QUESTION_DELETED",
+        "details": "Deleted question q_1791552177715_2mg7",
+        "targetId": "q_1791552177715_2mg7",
+        "timestamp": "2026-10-09T13:22:57.769Z"
+      },
+      {
+        "id": "log_1791552177765_o5b37",
+        "admin": "Administrator",
+        "action": "EXAMINATION_DELETED",
+        "details": "Deleted exam Verification Assessment Test",
+        "targetId": "exam_1791552177722",
+        "timestamp": "2026-10-09T13:22:57.765Z"
+      },
+      {
+        "id": "log_1791552177761_v7frb",
+        "admin": "Administrator",
+        "action": "STUDENT_DELETED",
+        "details": "Deleted student record: Test Candidate (EXAM-2026-0001)",
+        "targetId": "std_1791552177701_aacj",
+        "timestamp": "2026-10-09T13:22:57.761Z"
+      },
+      {
+        "id": "log_1791552177751_tjk6d",
+        "admin": "Test Candidate",
+        "action": "EXAM_SUBMITTED",
+        "details": "Submitted exam Verification Assessment Test with score 4/4",
+        "timestamp": "2026-10-09T13:22:57.751Z"
+      },
+      {
+        "id": "log_1791552177722_7wlv3",
+        "admin": "Administrator",
+        "action": "EXAMINATION_CREATED",
+        "details": "Created online examination: Verification Assessment Test",
+        "targetId": "exam_1791552177722",
+        "timestamp": "2026-10-09T13:22:57.722Z"
+      },
+      {
+        "id": "log_1791552177715_act6y",
+        "admin": "Administrator",
+        "action": "QUESTION_CREATED",
+        "details": "Added question to Math (Percentage & Profit Loss)",
+        "targetId": "q_1791552177715_2mg7",
+        "timestamp": "2026-10-09T13:22:57.715Z"
+      },
+      {
+        "id": "log_1791552177708_bl1n3",
+        "admin": "Administrator",
+        "action": "STUDENT_STATUS_CHANGE",
+        "details": "Changed Test Candidate (EXAM-2026-0001) status from Pending to Approved",
+        "targetId": "std_1791552177701_aacj",
+        "timestamp": "2026-10-09T13:22:57.708Z"
+      },
+      {
+        "id": "log_1791552177685_lj1vx",
+        "admin": "Administrator",
+        "action": "ADMIN_LOGIN",
+        "details": "Successful secret administrator login verified.",
+        "timestamp": "2026-10-09T13:22:57.685Z"
+      },
+      {
+        "id": "log_1791552159888_wbf9x",
+        "admin": "Administrator",
+        "action": "DATABASE_BACKUP_CREATED",
+        "details": "Created backup archive: exam_backup_2026-10-09T13-22-39-888Z.json",
+        "timestamp": "2026-10-09T13:22:39.888Z"
+      },
+      {
+        "id": "log_1791552159876_5a25q",
+        "admin": "Administrator",
+        "action": "ADMIN_LOGIN",
+        "details": "Successful secret administrator login verified.",
+        "timestamp": "2026-10-09T13:22:39.876Z"
+      },
+      {
+        "id": "log_1791552085988_vvjbw",
+        "admin": "Administrator",
+        "action": "ADMIN_LOGIN",
+        "details": "Successful secret administrator login verified.",
+        "timestamp": "2026-10-09T13:21:25.988Z"
+      },
+      {
+        "id": "log_init",
+        "admin": "System Root",
+        "action": "PLATFORM_INITIALIZED",
+        "details": "Competitive Examination Platform cleanly initialized with 0 students, 0 exams, and 0 questions.",
+        "timestamp": "2026-10-06T12:09:44.867Z"
+      }
+    ],
+    "questions": [],
+    "examinations": [],
+    "announcements": [],
+    "notifications": [
+      {
+        "id": "notif_admin_1791552177701",
+        "read": false,
+        "type": "approval",
+        "title": "New Student Registration",
+        "message": "Test Candidate (EXAM-2026-0001) has registered and requires approval.",
+        "createdAt": "2026-10-09T13:22:57.701Z",
+        "recipientId": "admin"
+      },
+      {
+        "id": "notif_admin_1791553134370",
+        "read": false,
+        "type": "approval",
+        "title": "New Student Registration",
+        "message": "Verification Candidate (EXAM-2026-0001) has registered and requires approval.",
+        "createdAt": "2026-10-09T13:38:54.370Z",
+        "recipientId": "admin"
+      }
+    ]
+  }
+}

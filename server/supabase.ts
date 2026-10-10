@@ -330,3 +330,73 @@ export async function testSupabaseDiagnostic(): Promise<{
     return diagnosticResult;
   }
 }
+
+/**
+ * Checks which normalized relational tables exist in the Supabase schema
+ */
+export async function checkRelationalTables(): Promise<{
+  available: boolean;
+  tables: Record<string, boolean>;
+  tablesFound: number;
+  totalTables: number;
+}> {
+  const client = getSupabaseClient();
+  const tableList = [
+    'admins', 'batches', 'subjects', 'questions',
+    'examinations', 'students', 'exam_attempts',
+    'student_doubts', 'announcements', 'notifications',
+    'audit_logs', 'app_settings'
+  ];
+
+  if (!client) {
+    const res: Record<string, boolean> = {};
+    tableList.forEach(t => res[t] = false);
+    return { available: false, tables: res, tablesFound: 0, totalTables: tableList.length };
+  }
+
+  const tables: Record<string, boolean> = {};
+  let found = 0;
+
+  for (const table of tableList) {
+    try {
+      const { error } = await client.from(table).select('id').limit(1);
+      const exists = !error;
+      tables[table] = exists;
+      if (exists) found++;
+    } catch {
+      tables[table] = false;
+    }
+  }
+
+  return {
+    available: found === tableList.length,
+    tables,
+    tablesFound: found,
+    totalTables: tableList.length
+  };
+}
+
+/**
+ * Executes migrate_app_data_to_relational RPC function if defined
+ */
+export async function executeRelationalMigrationRpc(): Promise<{
+  success: boolean;
+  message: string;
+  details?: any;
+}> {
+  const client = getSupabaseClient();
+  if (!client) {
+    return { success: false, message: 'Supabase client is not configured.' };
+  }
+
+  try {
+    const { data, error } = await client.rpc('migrate_app_data_to_relational');
+    if (error) {
+      return { success: false, message: error.message };
+    }
+    return { success: true, message: 'Relational migration RPC completed.', details: data };
+  } catch (err: any) {
+    return { success: false, message: err.message };
+  }
+}
+

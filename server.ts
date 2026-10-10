@@ -92,7 +92,7 @@ app.post('/api/auth/register', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Full name, email, and password are required.' });
     }
 
-    const db = await loadDatabase();
+    const db = await loadDatabase(true);
     const existing = db.students.find(s => s.email.toLowerCase() === email.toLowerCase());
     if (existing) {
       return res.status(400).json({ error: 'A student with this email address already exists.' });
@@ -156,7 +156,7 @@ app.post('/api/auth/login', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Registration number/Email and password are required.' });
     }
 
-    const db = await loadDatabase();
+    const db = await loadDatabase(true);
     const cleanId = identifier.trim().toLowerCase();
     const student = db.students.find(
       s => s.email.toLowerCase() === cleanId || s.registrationNumber.toLowerCase() === cleanId
@@ -356,7 +356,7 @@ app.get('/api/auth/me', async (req: Request, res: Response) => {
 
 app.get('/api/admin/students', async (req: Request, res: Response) => {
   if (!extractAdminToken(req)) return res.status(403).json({ error: 'Unauthorized admin access' });
-  const db = await loadDatabase();
+  const db = await loadDatabase(true);
   const { status, batchId, search } = req.query;
 
   let list = db.students.map(s => {
@@ -397,7 +397,7 @@ app.patch('/api/admin/students/:id/status', async (req: Request, res: Response) 
   if (!extractAdminToken(req)) return res.status(403).json({ error: 'Unauthorized admin access' });
   const { id } = req.params;
   const { status, rejectionReason } = req.body;
-  const db = await loadDatabase();
+  const db = await loadDatabase(true);
 
   const student = db.students.find(s => s.id === id);
   if (!student) return res.status(404).json({ error: 'Student not found' });
@@ -814,7 +814,7 @@ app.post('/api/ai/doubt-solve', async (req: Request, res: Response) => {
   }
 });
 
-// --- EXAMINATIONS (ONLINE & OFFLINE) ---
+// --- EXAMINATIONS ---
 
 app.get('/api/exams', async (req: Request, res: Response) => {
   const db = await loadDatabase();
@@ -1411,8 +1411,7 @@ app.get('/api/analytics/admin', async (req: Request, res: Response) => {
   const suspendedStudents = db.students.filter(s => s.status === 'Suspended').length;
 
   const totalExams = db.examinations.length;
-  const onlineExams = db.examinations.filter(e => e.mode === 'online').length;
-  const offlineExams = db.examinations.filter(e => e.mode === 'offline').length;
+  const onlineExams = db.examinations.length;
   const completedAttempts = db.attempts.filter(a => a.status === 'submitted');
 
   const avgMarks = completedAttempts.length
@@ -1481,7 +1480,6 @@ app.get('/api/analytics/admin', async (req: Request, res: Response) => {
       suspendedStudents,
       totalExams,
       onlineExams,
-      offlineExams,
       totalAttempts: completedAttempts.length,
       avgMarks,
       avgPercentage,
@@ -1829,7 +1827,12 @@ app.post('/api/backup/restore', async (req: Request, res: Response) => {
 
 app.post('/api/admin/purge-data', async (req: Request, res: Response) => {
   if (!extractAdminToken(req)) return res.status(403).json({ error: 'Unauthorized admin access' });
-  const db = await loadDatabase();
+
+  // Data Safety: Create an automatic immutable JSON backup before performing any purge
+  const backup = await createBackup();
+  console.log(`[Data Safety Guard] Automatic backup archive created prior to purge: ${backup.fileName}`);
+
+  const db = await loadDatabase(true);
   db.students = [];
   db.attempts = [];
   db.examinations = [];
@@ -1839,15 +1842,19 @@ app.post('/api/admin/purge-data', async (req: Request, res: Response) => {
   db.announcements = [];
   db.auditLogs = [
     {
-      id: 'log_init',
+      id: `log_init_${Date.now()}`,
       action: 'PLATFORM_INITIALIZED',
       admin: 'Administrator',
-      details: 'Platform test data cleanly purged with 0 students, 0 exams, and 0 questions.',
+      details: `Platform test records cleanly cleared. Pre-purge safety archive preserved at ${backup.fileName}.`,
       timestamp: new Date().toISOString()
     }
   ];
   await saveDatabase(db);
-  return res.json({ success: true, message: 'All student accounts, examinations, questions, and test records purged successfully to a clean slate.' });
+  return res.json({
+    success: true,
+    message: 'Platform records cleanly purged. A complete safety backup was automatically created and saved.',
+    backupArchive: backup.fileName
+  });
 });
 
 // --- SUPABASE STORAGE DIAGNOSTIC & MIGRATION ENDPOINTS ---
